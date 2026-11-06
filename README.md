@@ -1,3 +1,14 @@
+# Install and run
+```
+npm i
+npm run dev
+```
+
+# TODO
+- set up areas (db, document, streets in borders route)
+- set up overpass API (might have better performance than running `exec()`)
+
+# Setting up the DB
 download osmium (best done on linux):
 
 https://wiki.openstreetmap.org/wiki/Osmium
