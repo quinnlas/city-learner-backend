@@ -1,8 +1,10 @@
 const express = require('express');
 const util = require('node:util');
 const exec = util.promisify(require('node:child_process').exec);
+const cors = require('cors')
 
 const app = express()
+app.use(cors())
 app.set('query string', 'extended')
 const port = 3000
 
@@ -11,7 +13,7 @@ async function queryDB(query) {
 
   const child = await exec(`/home/quinn/code/overpass/osm-3s_v0.7.62.11/bin/osm3s_query --db-dir="/home/quinn/code/overpass/data/" --request='${query}'`, {
     // big enough for Minneapolis roads
-    maxBuffer: 1024 * 1024 * 8
+    maxBuffer: 1024 * 1024 * 64
   })
 
   if (child.stderr) {
@@ -19,7 +21,7 @@ async function queryDB(query) {
     console.error(child.stderr)
   }
 
-  return child.stdout
+  return JSON.parse(child.stdout)
 }
 
 function scrubCityName(name) {
@@ -37,7 +39,7 @@ app.get('/borders/', async (req, res) => {
   relation["name"="${scrubCityName(req.query.name)}"];
   out geom;`
 
-  res.send(await queryDB(query))
+  res.json(await queryDB(query))
 })
 
 app.get('/roads/', async (req, res) => {
@@ -61,16 +63,11 @@ app.get('/roads/', async (req, res) => {
   const query = `
   [out:json][timeout:25];
   (
-    way["highway"="motorway"](${bboxStr});
-    way["highway"="trunk"](${bboxStr});
-    way["highway"="primary"](${bboxStr});
-    way["highway"="secondary"](${bboxStr});
-    way["highway"="tertiary"](${bboxStr});
-    way["highway"="unclassified"](${bboxStr});
+    way[highway](${bboxStr});
   );
   out geom;`
 
-  res.send(await queryDB(query))
+  res.json(await queryDB(query))
 })
 
 app.listen(port, () => {
