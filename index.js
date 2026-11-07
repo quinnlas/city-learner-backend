@@ -1,27 +1,50 @@
 const express = require('express');
-const util = require('node:util');
-const exec = util.promisify(require('node:child_process').exec);
 const cors = require('cors')
+const Axios = require('axios')
+const fs = require('fs/promises')
 
 const app = express()
 app.use(cors())
 app.set('query string', 'extended')
 const port = 3000
 
+// // example for self hosting
+// const util = require('util');
+// const exec = util.promisify(require('child_process').exec);
+// async function queryDB(query) {
+//   console.log('Running query:', query)
+
+//   const child = await exec(`/home/quinn/code/overpass/osm-3s_v0.7.62.11/bin/osm3s_query --db-dir="/home/quinn/code/overpass/data/" --request='${query}'`, {
+//     // big enough for Minneapolis roads
+//     maxBuffer: 1024 * 1024 * 64
+//   })
+
+//   if (child.stderr) {
+//     // don't throw, because it's just debug usually
+//     console.error(child.stderr)
+//   }
+
+//   return JSON.parse(child.stdout)
+// }
+
+let overpass
+
+async function initiate() {
+  const API_KEY = await fs.readFile('./API_KEY', {encoding: 'utf8'})
+  overpass = Axios.create({
+    baseURL: `https://overpass.nextgis.com/${API_KEY}/api/interpreter`
+  })
+  console.log('Initiated Overpass API successfully.')
+}
+
+initiate().catch(console.error)
+
 async function queryDB(query) {
   console.log('Running query:', query)
 
-  const child = await exec(`/home/quinn/code/overpass/osm-3s_v0.7.62.11/bin/osm3s_query --db-dir="/home/quinn/code/overpass/data/" --request='${query}'`, {
-    // big enough for Minneapolis roads
-    maxBuffer: 1024 * 1024 * 64
-  })
+  const res = await overpass.post("", "data=" + encodeURIComponent(query))
 
-  if (child.stderr) {
-    // don't throw, because it's just debug usually
-    console.error(child.stderr)
-  }
-
-  return JSON.parse(child.stdout)
+  return res.data
 }
 
 function scrubCityName(name) {
