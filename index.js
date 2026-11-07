@@ -47,26 +47,50 @@ async function queryDB(query) {
   return res.data
 }
 
-function scrubCityName(name) {
-  // prevent injection
-  return name.replaceAll('"', '')
-}
-
 app.get('/borders/', async (req, res) => {
-  // curl localhost:3000/borders?name=Minneapolis
+  // curl localhost:3000/borders?relID=136575
   console.log(req.query)
+
+  // prevent injection and validate
+  if (!req.query.relID || Number.isNaN(Number.parseInt(req.query.relID))) {
+    res.status(400)
+    return res.send(`Missing query string param relID!\n`)
+  }
+
+  const relID = Number.parseInt(req.query.relID)
 
   // quotes are needed in the query to prevent injection
   const query = `
   [out:json][timeout:25];
-  relation["name"="${scrubCityName(req.query.name)}"];
+  relation(${relID});
   out geom;`
 
   res.json(await queryDB(query))
 })
 
-app.get('/roads/', async (req, res) => {
-  // curl "localhost:3000/roads?minlat=44.8906175&maxlat=45.0512576&minlon=-93.3291250&maxlon=-93.1938590"
+app.get('/roads/area', async (req, res) => {
+  // curl "localhost:3000/roads/bbox?areaID=3600136575"
+  console.log(req.query)
+
+  // prevent injection and validate
+  if (!req.query.areaID || Number.isNaN(Number.parseInt(req.query.areaID))) {
+    res.status(400)
+    return res.send(`Missing query string param areaID!\n`)
+  }
+
+  const areaID = Number.parseInt(req.query.areaID)
+
+  const query = `
+  [timeout:25][out:json];
+  area(${areaID})->.searchArea;
+  way[highway](area.searchArea);
+  out geom;`
+
+  res.json(await queryDB(query))
+})
+
+app.get('/roads/bbox', async (req, res) => {
+  // curl "localhost:3000/roads/bbox?minlat=44.8906175&maxlat=45.0512576&minlon=-93.3291250&maxlon=-93.1938590"
   console.log(req.query)
 
   const bbox = {}
