@@ -1,7 +1,10 @@
+const http = require('http')
+const https = require('https')
 const express = require('express');
 const cors = require('cors')
 const Axios = require('axios')
-const fs = require('fs/promises')
+const fsp = require('fs/promises')
+const fs = require('fs')
 
 const app = express()
 app.use(cors())
@@ -30,7 +33,7 @@ const port = 3000
 let overpass
 
 async function initiate() {
-  const API_KEY = await fs.readFile('./API_KEY', {encoding: 'utf8'})
+  const API_KEY = await fsp.readFile('./API_KEY', {encoding: 'utf8'})
   overpass = Axios.create({
     baseURL: `https://overpass.nextgis.com/${API_KEY}/api/interpreter`
   })
@@ -117,6 +120,17 @@ app.get('/roads/bbox', async (req, res) => {
   res.json(await queryDB(query))
 })
 
-app.listen(port, () => {
-  console.log(`city-learner-backend listening on port ${port}`)
-})
+if (fs.existsSync('./HTTPS_KEY')) {
+  const httpsServer = https.createServer({
+    key: fs.readFileSync('./HTTPS_KEY'),
+    cert: fs.readFileSync('./HTTPS_CERT')
+  }, app)
+  httpsServer.listen(port, () => {
+    console.log(`city-learner-backend listening on port ${port} (HTTPS)`)
+  })
+} else {
+  const httpServer = http.createServer(app)
+  httpServer.listen(port, () => {
+    console.log(`city-learner-backend listening on port ${port} (HTTP)`)
+  })
+}
