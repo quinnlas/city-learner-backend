@@ -35,7 +35,8 @@ let overpass
 async function initiate() {
   const API_KEY = await fsp.readFile('./API_KEY', {encoding: 'utf8'})
   overpass = Axios.create({
-    baseURL: `https://overpass.nextgis.com/${API_KEY}/api/interpreter`
+    baseURL: `https://overpass.nextgis.com/${API_KEY}/api/interpreter`,
+    responseType: 'stream'
   })
   console.log('Initiated Overpass API successfully.')
 }
@@ -68,7 +69,8 @@ app.get('/borders/', async (req, res) => {
   relation(${relID});
   out geom;`
 
-  res.json(await queryDB(query))
+  res.set({ "Content-Type": 'application/json' });
+  (await queryDB(query)).pipe(res)
 })
 
 app.get('/roads/area', async (req, res) => {
@@ -89,7 +91,8 @@ app.get('/roads/area', async (req, res) => {
   way[highway](area.searchArea);
   out geom;`
 
-  res.json(await queryDB(query))
+  res.set({ "Content-Type": 'application/json' });
+  (await queryDB(query)).pipe(res)
 })
 
 app.get('/roads/bbox', async (req, res) => {
@@ -117,7 +120,8 @@ app.get('/roads/bbox', async (req, res) => {
   );
   out geom;`
 
-  res.json(await queryDB(query))
+  res.set({ "Content-Type": 'application/json' });
+  (await queryDB(query)).pipe(res)
 })
 
 if (fs.existsSync('./HTTPS_KEY')) {
